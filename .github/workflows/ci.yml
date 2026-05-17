@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+
+      - name: Build
+        run: forge build --sizes
+
+      - name: Run tests
+        run: forge test -vvv
+        env:
+          ARBITRUM_RPC: ${{ secrets.ARBITRUM_RPC }}
+
+      - name: Coverage check
+        run: forge coverage --no-match-path "script/*"
+
+      - name: Run Slither
+        uses: crytic/slither-action@v0.4.0
+        with:
+          target: "src/"
+          slither-args: "--exclude-dependencies"
+        continue-on-error: true
+
+      - name: Format check
+        run: forge fmt --check
