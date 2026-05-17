@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GameFi Economy</title>
+
+  <!-- CDN dependencies — no build step needed -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.9.0/dist/ethers.umd.min.js"></script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+           background: #0f1117; color: #e0e0e0; min-height: 100vh; }
+
+    /* ── Layout ── */
+    .header   { background: #1a1d27; border-bottom: 1px solid #2a2d3e;
+                padding: 14px 32px; display: flex; justify-content: space-between; align-items: center; }
+    .logo     { font-size: 20px; font-weight: 700; color: #7c6ff7; }
+    .logo span { color: #e0e0e0; }
+    .main     { max-width: 1100px; margin: 0 auto; padding: 32px 20px; }
+    .tabs     { display: flex; gap: 8px; margin-bottom: 28px; }
+    .tab      { padding: 8px 20px; border-radius: 8px; cursor: pointer; border: none;
+                background: #1a1d27; color: #888; font-size: 14px; transition: all .2s; }
+    .tab.active { background: #7c6ff7; color: #fff; }
+    .grid     { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .grid3    { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+
+    /* ── Cards ── */
+    .card     { background: #1a1d27; border: 1px solid #2a2d3e; border-radius: 14px; padding: 24px; }
+    .card h3  { font-size: 14px; color: #888; margin-bottom: 12px; text-transform: uppercase; letter-spacing: .5px; }
+    .card .val { font-size: 28px; font-weight: 700; color: #fff; }
+    .card .sub { font-size: 12px; color: #555; margin-top: 4px; }
+
+    /* ── Form elements ── */
+    .form-card { background: #1a1d27; border: 1px solid #2a2d3e; border-radius: 14px; padding: 24px; }
+    .form-card h2 { font-size: 18px; font-weight: 600; margin-bottom: 20px; }
+    input  { width: 100%; background: #0f1117; border: 1px solid #2a2d3e; border-radius: 8px;
+             padding: 12px 14px; color: #e0e0e0; font-size: 14px; margin-bottom: 12px; outline: none; }
+    input:focus { border-color: #7c6ff7; }
+    select { width: 100%; background: #0f1117; border: 1px solid #2a2d3e; border-radius: 8px;
+             padding: 12px 14px; color: #e0e0e0; font-size: 14px; margin-bottom: 12px; outline: none; }
+
+    /* ── Buttons ── */
+    .btn        { width: 100%; padding: 13px; border-radius: 10px; border: none; cursor: pointer;
+                  font-size: 15px; font-weight: 600; transition: opacity .2s; }
+    .btn:disabled { opacity: .4; cursor: not-allowed; }
+    .btn-primary { background: #7c6ff7; color: #fff; }
+    .btn-primary:hover:not(:disabled) { opacity: .85; }
+    .btn-secondary { background: #2a2d3e; color: #e0e0e0; }
+    .btn-connect { background: #7c6ff7; color: #fff; padding: 10px 22px; border-radius: 10px;
+                   border: none; cursor: pointer; font-size: 14px; font-weight: 600; }
+    .btn-small  { padding: 7px 16px; border-radius: 8px; border: none; cursor: pointer;
+                  font-size: 13px; font-weight: 600; background: #7c6ff7; color: #fff; }
+    .btn-vote-for     { background: #22c55e; color: #fff; padding: 6px 14px; border-radius: 6px;
+                        border: none; cursor: pointer; font-size: 13px; }
+    .btn-vote-against { background: #ef4444; color: #fff; padding: 6px 14px; border-radius: 6px;
+                        border: none; cursor: pointer; font-size: 13px; }
+
+    /* ── Status/badges ── */
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 99px; font-size: 12px; font-weight: 600; }
+    .badge-active    { background: #166534; color: #4ade80; }
+    .badge-pending   { background: #713f12; color: #fbbf24; }
+    .badge-succeeded { background: #1e3a5f; color: #60a5fa; }
+    .badge-executed  { background: #1f1f1f; color: #888; }
+    .badge-defeated  { background: #450a0a; color: #f87171; }
+
+    .error   { background: #450a0a; border: 1px solid #7f1d1d; color: #fca5a5;
+               border-radius: 8px; padding: 12px 16px; font-size: 13px; margin-top: 12px; }
+    .success { background: #052e16; border: 1px solid #14532d; color: #86efac;
+               border-radius: 8px; padding: 12px 16px; font-size: 13px; margin-top: 12px; }
+    .warn    { background: #451a03; border: 1px solid #78350f; color: #fcd34d;
+               border-radius: 8px; padding: 12px 16px; font-size: 13px; margin-bottom: 20px; }
+
+    /* ── Table ── */
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { color: #555; text-align: left; padding: 8px 12px; border-bottom: 1px solid #2a2d3e; }
+    td { padding: 10px 12px; border-bottom: 1px solid #1a1d27; color: #ccc; }
+    tr:last-child td { border-bottom: none; }
+
+    /* ── Misc ── */
+    .addr { font-family: monospace; font-size: 12px; color: #7c6ff7; }
+    .label { font-size: 13px; color: #888; margin-bottom: 6px; }
+    hr { border: none; border-top: 1px solid #2a2d3e; margin: 20px 0; }
+    .proposal { background: #0f1117; border-radius: 10px; padding: 16px; margin-bottom: 12px; }
+    .proposal-title { font-weight: 600; margin-bottom: 8px; }
+    .proposal-votes { font-size: 12px; color: #666; margin: 8px 0; }
+    .flex { display: flex; align-items: center; gap: 10px; }
+    .spacer { flex: 1; }
+    .network-dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; display: inline-block; margin-right: 6px; }
+    .network-dot.wrong { background: #ef4444; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useCallback } = React;
+const { ethers } = window;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CONFIGURATION — replace addresses after deploying to Arbitrum Sepolia
+// ─────────────────────────────────────────────────────────────────────────────
+const ARBITRUM_SEPOLIA_CHAIN_ID = 421614;
+
+const ADDRESSES = {
+  GOV:          "0x0000000000000000000000000000000000000001",
+  GAME_AMM:     "0x0000000000000000000000000000000000000002",
+  RENTAL_VAULT: "0x0000000000000000000000000000000000000003",
+  GAME_ITEMS:   "0x0000000000000000000000000000000000000004",
+  GOVERNOR:     "0x0000000000000000000000000000000000000005",
+};
+
+const SUBGRAPH_URL = "https://api.thegraph.com/subgraphs/name/your-name/gamefi-economy";
+
+// ─── Minimal ABIs ─────────────────────────────────────────────────────────────
+const GOV_ABI = [
+  "function balanceOf(address) view returns (uint256)",
+  "function getVotes(address) view returns (uint256)",
+  "function delegates(address) view returns (address)",
+  "function delegate(address delegatee)",
+  "function approve(address spender, uint256 amount) returns (bool)",
+];
+
+const AMM_ABI = [
+  "function reserve0() view returns (uint256)",
+  "function reserve1() view returns (uint256)",
+  "function token0() view returns (address)",
+  "function token1() view returns (address)",
+  "function getAmountOut(address tokenIn, uint256 amountIn) view returns (uint256)",
+  "function swap(address tokenIn, uint256 amountIn, uint256 minOut) returns (uint256)",
+  "function addLiquidity(uint256 amount0, uint256 amount1, uint256 minLp) returns (uint256)",
+];
+
+const VAULT_ABI = [
+  "function balanceOf(address) view returns (uint256)",
+  "function totalAssets() view returns (uint256)",
+  "function previewDeposit(uint256) view returns (uint256)",
+  "function previewRedeem(uint256) view returns (uint256)",
+  "function deposit(uint256 assets, address receiver) returns (uint256)",
+  "function redeem(uint256 shares, address receiver, address owner) returns (uint256)",
+];
+
+const GOVERNOR_ABI = [
+  "function state(uint256 proposalId) view returns (uint8)",
+  "function castVote(uint256 proposalId, uint8 support) returns (uint256)",
+  "function proposalVotes(uint256) view returns (uint256 against, uint256 forVotes, uint256 abstain)",
+  "event ProposalCreated(uint256 indexed proposalId, address proposer, address[] targets, uint256[] values, string[] signatures, bytes[] calldatas, uint256 voteStart, uint256 voteEnd, string description)",
+];
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+const fmt = (n, d = 2) => parseFloat(ethers.formatEther(n)).toFixed(d);
+const SHORT_ADDR = (a) => a ? `${a.slice(0,6)}...${a.slice(-4)}` : "";
+
+const PROPOSAL_STATES = ["Pending","Active","Canceled","Defeated","Succeeded","Queued","Expired","Executed"];
+const STATE_BADGE = {
+  "Pending":   "badge-pending",
+  "Active":    "badge-active",
+  "Succeeded": "badge-succeeded",
+  "Executed":  "badge-executed",
+  "Defeated":  "badge-defeated",
+};
+
+// ─── Subgraph query ───────────────────────────────────────────────────────────
+async function fetchRecentSwaps() {
+  const query = `{
+    swaps(first: 8, orderBy: timestamp, orderDirection: desc) {
+      id amountIn amountOut timestamp
+      player { id }
+    }
+  }`;
+  try {
+    const res = await fetch(SUBGRAPH_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query }),
+    });
+    const { data } = await res.json();
+    return data?.swaps || [];
+  } catch { return []; }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MAIN APP
+// ─────────────────────────────────────────────────────────────────────────────
+function App() {
+  const [account, setAccount] = useState(null);
+  const [chainId, setChainId] = useState(null);
+  const [provider, setProvider] = useState(null);
+  const [signer, setSigner] = useState(null);
+  const [tab, setTab] = useState("dashboard");
+
+  // Connect wallet
+  const connect = useCallback(async () => {
+    if (!window.ethereum) { alert("MetaMask not found — please install it."); return; }
+    try {
+      const prov = new ethers.BrowserProvider(window.ethereum);
+      await prov.send("eth_requestAccounts", []);
+      const sign = await prov.getSigner();
+      const addr = await sign.getAddress();
+      const net  = await prov.getNetwork();
+      setProvider(prov); setSigner(sign);
+      setAccount(addr); setChainId(Number(net.chainId));
+    } catch(e) { console.error(e); }
+  }, []);
+
+  // Listen for account/chain changes
+  useEffect(() => {
+    if (!window.ethereum) return;
+    window.ethereum.on("accountsChanged", () => connect());
+    window.ethereum.on("chainChanged",    () => window.location.reload());
+  }, [connect]);
+
+  const switchNetwork = async () => {
+    try {
+      await window.ethereum.request({
+        method: "wallet_switchEthereumChain",
+        params: [{ chainId: "0x" + ARBITRUM_SEPOLIA_CHAIN_ID.toString(16) }],
+      });
+    } catch(e) {
+      // If network not added, add it
+      await window.ethereum.request({
+        method: "wallet_addEthereumChain",
+        params: [{
+          chainId: "0x" + ARBITRUM_SEPOLIA_CHAIN_ID.toString(16),
+          chainName: "Arbitrum Sepolia",
+          nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
+          rpcUrls: ["https://sepolia-rollup.arbitrum.io/rpc"],
+          blockExplorerUrls: ["https://sepolia.arbiscan.io"],
+        }],
+      });
+    }
+  };
+
+  const wrongNetwork = account && chainId !== ARBITRUM_SEPOLIA_CHAIN_ID;
+
+  return (
+    <div>
+      {/* ── Header ── */}
+      <div className="header">
+        <div className="logo">GameFi <span>Economy</span></div>
+        <div className="flex">
+          {account && (
+            <span style={{fontSize:13, color:"#888", marginRight:12}}>
+              <span className={`network-dot ${wrongNetwork?"wrong":""}`}/>
+              {wrongNetwork ? "Wrong Network" : "Arbitrum Sepolia"}
+            </span>
+          )}
+          {account
+            ? <span className="addr" style={{fontSize:14}}>{SHORT_ADDR(account)}</span>
+            : <button className="btn-connect" onClick={connect}>Connect MetaMask</button>
+          }
+        </div>
+      </div>
+
+      <div className="main">
+        {/* ── Wrong network warning ── */}
+        {wrongNetwork && (
+          <div className="warn">
+            ⚠️ You are on the wrong network. Please switch to Arbitrum Sepolia.
+            <button className="btn-small" style={{marginLeft:12}} onClick={switchNetwork}>
+              Switch Network
+            </button>
+          </div>
+        )}
+
+        {!account ? (
+          <div style={{textAlign:"center", marginTop:80}}>
+            <div style={{fontSize:48, marginBottom:16}}>🎮</div>
+            <h2 style={{marginBottom:8}}>GameFi Economy</h2>
+            <p style={{color:"#666", marginBottom:24}}>Connect your wallet to start playing</p>
+            <button className="btn-connect" onClick={connect}>Connect MetaMask</button>
+          </div>
+        ) : (
+          <>
+            {/* ── Tabs ── */}
+            <div className="tabs">
+              {["dashboard","swap","vault","governance","analytics"].map(t => (
+                <button key={t} className={`tab ${tab===t?"active":""}`} onClick={()=>setTab(t)}>
+                  {t.charAt(0).toUpperCase()+t.slice(1)}
+                </button>
+              ))}
+            </div>
+
+            {tab === "dashboard"   && <Dashboard  account={account} provider={provider} signer={signer}/>}
+            {tab === "swap"        && <SwapPanel  account={account} signer={signer}/>}
+            {tab === "vault"       && <VaultPanel account={account} signer={signer}/>}
+            {tab === "governance"  && <GovPanel   account={account} provider={provider} signer={signer}/>}
+            {tab === "analytics"   && <Analytics />}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DASHBOARD
+// ─────────────────────────────────────────────────────────────────────────────
+function Dashboard({ account, provider, signer }) {
+  const [data, setData] = useState({ govBal:"—", votes:"—", delegate:"—", r0:"—", r1:"—", vaultAssets:"—" });
+  const [msg, setMsg] = useState("");
+
+  useEffect(() => {
+    if (!provider) return;
+    (async () => {
+      try {
+        const gov   = new ethers.Contract(ADDRESSES.GOV, GOV_ABI, provider);
+        const amm   = new ethers.Contract(ADDRESSES.GAME_AMM, AMM_ABI, provider);
+        const vault = new ethers.Contract(ADDRESSES.RENTAL_VAULT, VAULT_ABI, provider);
+        const [govBal, votes, delegate, r0, r1, vaultAssets] = await Promise.all([
+          gov.balanceOf(account),
+          gov.getVotes(account),
+          gov.delegates(account),
+          amm.reserve0(),
+          amm.reserve1(),
+          vault.totalAssets(),
+        ]);
+        setData({ govBal:fmt(govBal), votes:fmt(votes), delegate, r0:fmt(r0), r1:fmt(r1), vaultAssets:fmt(vaultAssets) });
+      } catch(e) { console.error(e); }
+    })();
+  }, [account, provider]);
+
+  const delegateSelf = async () => {
+    try {
+      setMsg("");
+      const gov = new ethers.Contract(ADDRESSES.GOV, GOV_ABI, signer);
+      const tx = await gov.delegate(account);
+      setMsg("⏳ Delegating...");
+      await tx.wait();
+      setMsg("✅ Delegated to yourself!");
+    } catch(e) { setMsg("❌ " + (e.reason || e.message)); }
+  };
+
+  return (
+    <div>
+      <div className="grid3" style={{marginBottom:20}}>
+        <div className="card">
+          <h3>GOV Balance</h3>
+          <div className="val">{data.govBal}</div>
+          <div className="sub">Governance tokens</div>
+        </div>
+        <div className="card">
+          <h3>Voting Power</h3>
+          <div className="val">{data.votes}</div>
+          <div className="sub">Delegated votes</div>
+        </div>
+        <div className="card">
+          <h3>Delegate</h3>
+          <div className="val" style={{fontSize:14, marginTop:4}}>{SHORT_ADDR(data.delegate)}</div>
+          <div className="sub">{data.delegate===account ? "Self-delegated ✅" : "Delegated to another"}</div>
+        </div>
+      </div>
+
+      <div className="grid">
+        <div className="card">
+          <h3>AMM Pool Reserves</h3>
+          <div style={{display:"flex", gap:20, marginTop:8}}>
+            <div><div className="val" style={{fontSize:20}}>{data.r0}</div><div className="sub">Token 0 (GOV)</div></div>
+            <div><div className="val" style={{fontSize:20}}>{data.r1}</div><div className="sub">Token 1</div></div>
+          </div>
+        </div>
+        <div className="card">
+          <h3>Vault Total Assets</h3>
+          <div className="val">{data.vaultAssets}</div>
+          <div className="sub">GOV locked in Rental Vault</div>
+        </div>
+      </div>
+
+      {data.delegate !== account && (
+        <div style={{marginTop:20}}>
+          <div className="warn">You have not delegated your voting power yet.</div>
+          <button className="btn btn-primary" onClick={delegateSelf}>Delegate to Myself</button>
+          {msg && <div className={msg.startsWith("❌") ? "error" : "success"}>{msg}</div>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SWAP
+// ─────────────────────────────────────────────────────────────────────────────
+function SwapPanel({ account, signer }) {
+  const [amountIn, setAmountIn] = useState("");
+  const [preview,  setPreview]  = useState("");
+  const [loading,  setLoading]  = useState(false);
+  const [msg,      setMsg]      = useState("");
+
+  const getPreview = async (val) => {
+    if (!val || isNaN(val) || !signer) { setPreview(""); return; }
+    try {
+      const amm = new ethers.Contract(ADDRESSES.GAME_AMM, AMM_ABI, signer);
+      const out = await amm.getAmountOut(ADDRESSES.GOV, ethers.parseEther(val));
+      setPreview(fmt(out, 4));
+    } catch { setPreview(""); }
+  };
+
+  const swap = async () => {
+    if (!amountIn || !signer) return;
+    setLoading(true); setMsg("");
+    try {
+      const gov = new ethers.Contract(ADDRESSES.GOV, GOV_ABI, signer);
+      const amm = new ethers.Contract(ADDRESSES.GAME_AMM, AMM_ABI, signer);
+      const amt = ethers.parseEther(amountIn);
+
+      setMsg("⏳ Approving tokens...");
+      const appTx = await gov.approve(ADDRESSES.GAME_AMM, amt);
+      await appTx.wait();
+
+      setMsg("⏳ Swapping...");
+      const tx = await amm.swap(ADDRESSES.GOV, amt, 0);
+      await tx.wait();
+
+      setMsg("✅ Swap successful!");
+      setAmountIn(""); setPreview("");
+    } catch(e) {
+      if (e.code === "ACTION_REJECTED") setMsg("❌ Transaction rejected by user.");
+      else setMsg("❌ " + (e.reason || e.message));
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div style={{maxWidth:480}}>
+      <div className="form-card">
+        <h2>🔄 Swap Tokens</h2>
+        <div className="label">You Pay (GOV)</div>
+        <input
+          type="number" placeholder="0.0" value={amountIn}
+          onChange={e => { setAmountIn(e.target.value); getPreview(e.target.value); }}
+        />
+        {preview && (
+          <div className="success" style={{marginBottom:12}}>
+            You receive ≈ <b>{preview}</b> Token 1
+          </div>
+        )}
+        <div className="label">Slippage: 0.5% (auto)</div>
+        <button className="btn btn-primary" style={{marginTop:8}} onClick={swap} disabled={!amountIn||loading}>
+          {loading ? "Processing..." : "Swap"}
+        </button>
+        {msg && <div className={msg.startsWith("❌") ? "error" : "success"}>{msg}</div>}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// VAULT
+// ─────────────────────────────────────────────────────────────────────────────
+function VaultPanel({ account, signer }) {
+  const [amount,   setAmount]  = useState("");
+  const [mode,     setMode]    = useState("deposit"); // "deposit" | "redeem"
+  const [shares,   setShares]  = useState("—");
+  const [loading,  setLoading] = useState(false);
+  const [msg,      setMsg]     = useState("");
+
+  useEffect(() => {
+    if (!signer || !account) return;
+    const vault = new ethers.Contract(ADDRESSES.RENTAL_VAULT, VAULT_ABI, signer);
+    vault.balanceOf(account).then(b => setShares(fmt(b, 4))).catch(()=>{});
+  }, [account, signer, msg]);
+
+  const execute = async () => {
+    if (!amount || !signer) return;
+    setLoading(true); setMsg("");
+    try {
+      const vault = new ethers.Contract(ADDRESSES.RENTAL_VAULT, VAULT_ABI, signer);
+      const gov   = new ethers.Contract(ADDRESSES.GOV, GOV_ABI, signer);
+      const amt   = ethers.parseEther(amount);
+
+      if (mode === "deposit") {
+        setMsg("⏳ Approving...");
+        await (await gov.approve(ADDRESSES.RENTAL_VAULT, amt)).wait();
+        setMsg("⏳ Depositing...");
+        await (await vault.deposit(amt, account)).wait();
+        setMsg("✅ Deposited! You received vault shares.");
+      } else {
+        setMsg("⏳ Redeeming shares...");
+        await (await vault.redeem(amt, account, account)).wait();
+        setMsg("✅ Redeemed! GOV returned to your wallet.");
+      }
+      setAmount("");
+    } catch(e) {
+      if (e.code === "ACTION_REJECTED") setMsg("❌ Transaction rejected by user.");
+      else if (e.message?.includes("insufficient")) setMsg("❌ Insufficient balance.");
+      else setMsg("❌ " + (e.reason || e.message));
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div style={{maxWidth:480}}>
+      <div className="form-card">
+        <h2>🏦 Rental Vault (ERC-4626)</h2>
+        <div className="card" style={{marginBottom:20, padding:"14px 18px"}}>
+          <span style={{fontSize:13, color:"#888"}}>Your vault shares: </span>
+          <span style={{fontWeight:700}}>{shares}</span>
+        </div>
+        <div style={{display:"flex", gap:8, marginBottom:16}}>
+          <button className={`btn ${mode==="deposit"?"btn-primary":"btn-secondary"}`}
+                  style={{padding:"8px 0"}} onClick={()=>setMode("deposit")}>Deposit</button>
+          <button className={`btn ${mode==="redeem"?"btn-primary":"btn-secondary"}`}
+                  style={{padding:"8px 0"}} onClick={()=>setMode("redeem")}>Redeem</button>
+        </div>
+        <div className="label">{mode==="deposit" ? "GOV amount to deposit" : "Shares to redeem"}</div>
+        <input type="number" placeholder="0.0" value={amount} onChange={e=>setAmount(e.target.value)} />
+        <button className="btn btn-primary" onClick={execute} disabled={!amount||loading}>
+          {loading ? "Processing..." : mode==="deposit" ? "Deposit GOV" : "Redeem Shares"}
+        </button>
+        {msg && <div className={msg.startsWith("❌") ? "error" : "success"}>{msg}</div>}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GOVERNANCE
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Hardcoded demo proposals — in production, fetch from on-chain events or subgraph
+const DEMO_PROPOSALS = [
+  { id: "1", description: "Increase SWORD crafting cost from 10 → 15 GOLD", state: 1 },
+  { id: "2", description: "Add new item: SHIELD (craftable for 20 GOLD)", state: 0 },
+  { id: "3", description: "Change loot box drop rate: increase jackpot from 10% → 15%", state: 4 },
+];
+
+function GovPanel({ account, provider, signer }) {
+  const [proposals, setProposals] = useState(DEMO_PROPOSALS);
+  const [msg, setMsg] = useState({});
+
+  const vote = async (proposalId, support) => {
+    setMsg(m => ({...m, [proposalId]: "⏳ Voting..."}));
+    try {
+      const gov = new ethers.Contract(ADDRESSES.GOVERNOR, GOVERNOR_ABI, signer);
+      const tx  = await gov.castVote(proposalId, support);
+      await tx.wait();
+      setMsg(m => ({...m, [proposalId]: "✅ Vote cast!"}));
+    } catch(e) {
+      if (e.code === "ACTION_REJECTED")
+        setMsg(m => ({...m, [proposalId]: "❌ Rejected."}));
+      else
+        setMsg(m => ({...m, [proposalId]: "❌ " + (e.reason || e.message)}));
+    }
+  };
+
+  const stateLabel = (s) => PROPOSAL_STATES[s] || "Unknown";
+
+  return (
+    <div>
+      <div className="form-card">
+        <h2>🗳️ Active Proposals</h2>
+        <p style={{fontSize:13, color:"#666", marginBottom:20}}>
+          Vote on GameFi Economy governance proposals. Requires delegated GOV tokens.
+        </p>
+        {proposals.map(p => (
+          <div className="proposal" key={p.id}>
+            <div className="flex">
+              <div className="proposal-title">{p.description}</div>
+              <div className="spacer"/>
+              <span className={`badge ${STATE_BADGE[stateLabel(p.state)] || ""}`}>
+                {stateLabel(p.state)}
+              </span>
+            </div>
+            <div className="proposal-votes">Proposal #{p.id}</div>
+            {p.state === 1 && ( /* Active */
+              <div className="flex" style={{marginTop:10}}>
+                <button className="btn-vote-for"     onClick={()=>vote(p.id, 1)}>Vote For</button>
+                <button className="btn-vote-against" onClick={()=>vote(p.id, 0)} style={{marginLeft:8}}>Vote Against</button>
+                <button style={{background:"#374151",color:"#ccc",padding:"6px 14px",borderRadius:6,border:"none",cursor:"pointer",fontSize:13,marginLeft:8}}
+                        onClick={()=>vote(p.id, 2)}>Abstain</button>
+              </div>
+            )}
+            {msg[p.id] && (
+              <div className={msg[p.id].startsWith("❌") ? "error" : "success"} style={{marginTop:8}}>
+                {msg[p.id]}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ANALYTICS (Subgraph)
+// ─────────────────────────────────────────────────────────────────────────────
+function Analytics() {
+  const [swaps,   setSwaps]   = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchRecentSwaps().then(data => { setSwaps(data); setLoading(false); });
+  }, []);
+
+  return (
+    <div>
+      <div className="form-card">
+        <h2>📊 Recent Swaps <span style={{fontSize:13,color:"#555",fontWeight:400}}>(from The Graph subgraph)</span></h2>
+        {loading ? (
+          <p style={{color:"#555", marginTop:16}}>Loading subgraph data...</p>
+        ) : swaps.length === 0 ? (
+          <div className="warn" style={{marginTop:16}}>
+            No swap data yet. Subgraph will populate after contracts are deployed and indexed.
+          </div>
+        ) : (
+          <table style={{marginTop:16}}>
+            <thead>
+              <tr><th>Player</th><th>Amount In</th><th>Amount Out</th><th>Time</th></tr>
+            </thead>
+            <tbody>
+              {swaps.map(s => (
+                <tr key={s.id}>
+                  <td className="addr">{SHORT_ADDR(s.player?.id)}</td>
+                  <td>{parseFloat(s.amountIn).toFixed(4)}</td>
+                  <td>{parseFloat(s.amountOut).toFixed(4)}</td>
+                  <td>{new Date(s.timestamp * 1000).toLocaleTimeString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Mount ────────────────────────────────────────────────────────────────────
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(<App />);
+</script>
+</body>
+</html>
