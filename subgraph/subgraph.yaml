@@ -1,0 +1,82 @@
+specVersion: 0.0.5
+schema:
+  file: ./schema.graphql
+
+dataSources:
+  # ── GameAMM ──────────────────────────────────────────────────────────
+  - kind: ethereum
+    name: GameAMM
+    network: arbitrum-sepolia
+    source:
+      address: "0x0000000000000000000000000000000000000001"  # replace after deploy
+      abi: GameAMM
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Swap
+        - LiquidityPosition
+        - Player
+      abis:
+        - name: GameAMM
+          file: ./abis/GameAMM.json
+      eventHandlers:
+        - event: Swap(indexed address,indexed address,uint256,uint256)
+          handler: handleSwap
+        - event: LiquidityAdded(indexed address,uint256,uint256,uint256)
+          handler: handleLiquidityAdded
+        - event: LiquidityRemoved(indexed address,uint256,uint256,uint256)
+          handler: handleLiquidityRemoved
+      file: ./src/mappings.ts
+
+  # ── GameItems ─────────────────────────────────────────────────────────
+  - kind: ethereum
+    name: GameItems
+    network: arbitrum-sepolia
+    source:
+      address: "0x0000000000000000000000000000000000000002"  # replace after deploy
+      abi: GameItems
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Player
+        - LootBoxEvent
+      abis:
+        - name: GameItems
+          file: ./abis/GameItems.json
+      eventHandlers:
+        - event: ItemBought(indexed address,uint256,uint256)
+          handler: handleItemBought
+        - event: ItemCrafted(indexed address,uint256,uint256)
+          handler: handleItemCrafted
+      file: ./src/mappings.ts
+
+  # ── LootBox ───────────────────────────────────────────────────────────
+  - kind: ethereum
+    name: LootBox
+    network: arbitrum-sepolia
+    source:
+      address: "0x0000000000000000000000000000000000000003"  # replace after deploy
+      abi: LootBox
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - LootBoxEvent
+        - Player
+      abis:
+        - name: LootBox
+          file: ./abis/LootBox.json
+      eventHandlers:
+        - event: BoxOpened(indexed address,uint256)
+          handler: handleBoxOpened
+        - event: LootDropped(indexed address,uint256,uint256)
+          handler: handleLootDropped
+      file: ./src/mappings.ts

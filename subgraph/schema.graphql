@@ -1,0 +1,89 @@
+# ─── Entity 1: Player ────────────────────────────────────────────────────────
+# Tracks per-player statistics aggregated across all protocol interactions
+type Player @entity {
+  id: ID!                        # player address
+  address: Bytes!
+
+  # AMM activity
+  totalSwaps: BigInt!
+  totalVolumeIn: BigDecimal!     # total USD-equiv tokens swapped in
+  totalLiquidityAdded: BigDecimal!
+
+  # Items activity
+  totalItemsBought: BigInt!
+  totalItemsCrafted: BigInt!
+
+  # LootBox activity
+  totalBoxesOpened: BigInt!
+  totalLootReceived: BigInt!
+
+  # Relations
+  swaps:             [Swap!]!             @derivedFrom(field: "player")
+  liquidityEvents:   [LiquidityPosition!]! @derivedFrom(field: "provider")
+  lootBoxEvents:     [LootBoxEvent!]!     @derivedFrom(field: "player")
+
+  firstSeenAt: BigInt!           # block timestamp of first interaction
+  lastSeenAt:  BigInt!
+}
+
+# ─── Entity 2: Swap ──────────────────────────────────────────────────────────
+# One record per swap transaction in the GameAMM pool
+type Swap @entity {
+  id: ID!                        # txHash-logIndex
+  player:    Player!
+  tokenIn:   Bytes!              # address of input token
+  amountIn:  BigDecimal!
+  amountOut: BigDecimal!
+
+  blockNumber: BigInt!
+  timestamp:   BigInt!
+  txHash:      Bytes!
+}
+
+# ─── Entity 3: LiquidityPosition ─────────────────────────────────────────────
+# Tracks add/remove liquidity events for each LP provider
+type LiquidityPosition @entity {
+  id: ID!                        # txHash-logIndex
+  provider:  Player!
+  type:      String!             # "ADD" or "REMOVE"
+  amount0:   BigDecimal!
+  amount1:   BigDecimal!
+  lpAmount:  BigDecimal!         # LP tokens minted or burned
+
+  blockNumber: BigInt!
+  timestamp:   BigInt!
+  txHash:      Bytes!
+}
+
+# ─── Entity 4: LootBoxEvent ──────────────────────────────────────────────────
+# Tracks loot box openings and the items received via Chainlink VRF
+type LootBoxEvent @entity {
+  id: ID!                        # requestId as string
+  player:    Player!
+  requestId: BigInt!
+  status:    String!             # "PENDING" | "FULFILLED"
+
+  # Filled when VRF responds
+  itemId:    BigInt
+  itemName:  String              # "GOLD" | "SWORD" | "POTION"
+  amount:    BigInt
+
+  openedAt:    BigInt!           # timestamp of BoxOpened
+  fulfilledAt: BigInt            # timestamp of LootDropped
+  txHash:      Bytes!
+}
+
+# ─── Entity 5: ProtocolStats ─────────────────────────────────────────────────
+# Global protocol-wide aggregates (singleton, id = "global")
+type ProtocolStats @entity {
+  id: ID!                        # always "global"
+
+  totalSwaps:       BigInt!
+  totalVolume:      BigDecimal!  # sum of all amountIn across all swaps
+  totalLootBoxes:   BigInt!
+  totalItemsBought: BigInt!
+  totalItemsCrafted: BigInt!
+  totalPlayers:     BigInt!
+
+  lastUpdatedBlock: BigInt!
+}

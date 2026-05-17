@@ -1,0 +1,14 @@
+{
+  "name": "gamefi-economy-subgraph",
+  "version": "1.0.0",
+  "scripts": {
+    "codegen": "graph codegen",
+    "build":   "graph build",
+    "deploy":  "graph deploy --node https://api.thegraph.com/deploy/ gamefi-economy",
+    "local":   "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 gamefi-economy"
+  },
+  "dependencies": {
+    "@graphprotocol/graph-cli": "^0.57.0",
+    "@graphprotocol/graph-ts":  "^0.32.0"
+  }
+}

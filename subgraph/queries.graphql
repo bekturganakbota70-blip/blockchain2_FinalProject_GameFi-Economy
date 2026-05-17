@@ -1,0 +1,124 @@
+#  GameFi Economy — 5 GraphQL Queries (documented)           
+#  Endpoint: https://api.thegraph.com/subgraphs/name/<your-subgraph>  
+
+
+# ─── Query 1: Recent Swaps ───────────────────────────────────────────────────
+# Returns the 10 most recent swaps in the AMM pool.
+# Used by: frontend Swap History page.
+
+query RecentSwaps {
+  swaps(
+    first: 10
+    orderBy: timestamp
+    orderDirection: desc
+  ) {
+    id
+    player {
+      id
+      address
+    }
+    tokenIn
+    amountIn
+    amountOut
+    timestamp
+    txHash
+  }
+}
+
+# ─── Query 2: Top Players by Volume ──────────────────────────────────────────
+# Returns the top 10 players ranked by total swap volume.
+# Used by: frontend Leaderboard page.
+
+query TopPlayersByVolume {
+  players(
+    first: 10
+    orderBy: totalVolumeIn
+    orderDirection: desc
+  ) {
+    id
+    address
+    totalSwaps
+    totalVolumeIn
+    totalBoxesOpened
+    totalItemsBought
+    totalItemsCrafted
+  }
+}
+
+# ─── Query 3: Player Profile ──────────────────────────────────────────────────
+# Returns full stats for a single player including their last 5 swaps
+# and last 5 loot box events.
+# Used by: frontend Player Dashboard.
+
+query PlayerProfile($address: ID!) {
+  player(id: $address) {
+    id
+    address
+    totalSwaps
+    totalVolumeIn
+    totalLiquidityAdded
+    totalBoxesOpened
+    totalItemsBought
+    totalItemsCrafted
+    totalLootReceived
+    firstSeenAt
+    lastSeenAt
+
+    swaps(first: 5, orderBy: timestamp, orderDirection: desc) {
+      id
+      tokenIn
+      amountIn
+      amountOut
+      timestamp
+    }
+
+    lootBoxEvents(first: 5, orderBy: openedAt, orderDirection: desc) {
+      id
+      status
+      itemName
+      amount
+      openedAt
+      fulfilledAt
+    }
+  }
+}
+
+# ─── Query 4: Protocol Statistics ─────────────────────────────────────────────
+# Returns global protocol-wide aggregated statistics.
+# Used by: frontend Protocol Overview / Analytics page.
+
+query ProtocolOverview {
+  protocolStats(id: "global") {
+    totalSwaps
+    totalVolume
+    totalLootBoxes
+    totalItemsBought
+    totalItemsCrafted
+    totalPlayers
+    lastUpdatedBlock
+  }
+}
+
+# ─── Query 5: Pending Loot Boxes ──────────────────────────────────────────────
+# Returns all loot box events still waiting for VRF fulfillment.
+# Used by: frontend to show players their pending results.
+
+query PendingLootBoxes($player: String!) {
+  lootBoxEvents(
+    where: {
+      status: "PENDING"
+      player: $player
+    }
+    orderBy: openedAt
+    orderDirection: desc
+  ) {
+    id
+    requestId
+    status
+    openedAt
+    txHash
+    player {
+      address
+    }
+  }
+}
