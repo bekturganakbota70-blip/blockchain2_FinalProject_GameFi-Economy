@@ -11,7 +11,6 @@ Foundry consists of:
 
 
 
-## Usage
 
 ### Build
 
